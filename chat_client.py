@@ -2,9 +2,7 @@ import socket
 import errno
 import sys
 import argparse
-import concurrent.futures
 import threading
-import time
 
 
 class Client:
@@ -14,18 +12,14 @@ class Client:
         self.my_username = ''
         self.HEADER_LENGTH = 16
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.username_header = ''
 
     def set_up_username(self):
         self.my_username = input("Username: ")
         username = self.my_username.encode('utf-8')
-
         self.client_socket.connect((self.IP, self.PORT))
-
         self.client_socket.setblocking(False)
-
-        self.username_header = f"{len(username):<{self.HEADER_LENGTH}}".encode('utf-8')
-        self.client_socket.send(self.username_header + username)
+        username_header = f"{len(username):<{self.HEADER_LENGTH}}".encode('utf-8')
+        self.client_socket.send(username_header + username)
 
     def send_message(self):
         while True:
@@ -96,7 +90,6 @@ args = parser.parse_args()
 client = Client(args.IP, args.PORT)
 client.set_up_username()
 threads = []
-event = threading.Event()
 
 send_thread = threading.Thread(target=client.send_message)
 send_thread.start()
