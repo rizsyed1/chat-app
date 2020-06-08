@@ -1,4 +1,3 @@
-import select
 import server_socket
 import argparse
 import concurrent.futures
