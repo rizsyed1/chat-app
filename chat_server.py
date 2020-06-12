@@ -12,6 +12,19 @@ class Server:
         self.HEADER_LENGTH = 16
         self.lock = threading.Lock()
 
+    def remove_client(self, future):
+        try:
+            client_socket_to_remove = future.result()
+            with self.lock:
+                print('Closed connection from: {}'.format(self.clients[client_socket_to_remove]['data'].decode('utf-8')))
+                del self.clients[client_socket_to_remove]
+        except Exception as e:
+            logging.exception(e)
+
+    def add_client(self, name, socket):
+        with self.lock:
+            self.clients[socket] = name
+
     def read_message(self, socket_client):
         try:
             message_header = socket_client.recv(self.HEADER_LENGTH)
@@ -39,9 +52,7 @@ class Server:
         while socket:
             message = self.read_message(socket)
             if message is False:
-                with self.lock:
-                    print('Closed connection from: {}'.format(self.clients[socket]['data'].decode('utf-8')))
-                    del self.clients[socket]
+                return socket
 
             print(f'Received message from {self.clients[socket]["data"].decode("utf-8")}:'
                   f' {message["data"].decode("utf-8")}')
@@ -76,17 +87,17 @@ if __name__ == '__main__':
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         while True:
-            socket, client_address = server.current_socket.accept()
-            client = server.read_message(socket)
-            if client is False:
+            client_socket, client_address = server.current_socket.accept()
+            client_name = server.read_message(client_socket)
+            if client_name is False:
                 break
 
-            server.clients[socket] = client
+            server.add_client(client_name, client_socket)
 
             print("Accepted new connection from {}:{}, name: {}".format(
-                *client_address, client['data'].decode('utf-8'))
+                *client_address, client_name['data'].decode('utf-8'))
             )
 
-            executor.submit(server.run_client_socket, socket)
+            executor.submit(server.run_client_socket, client_socket).add_done_callback(server.remove_client)
 
 
