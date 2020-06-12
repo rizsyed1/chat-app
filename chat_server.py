@@ -28,18 +28,20 @@ class Server:
             return False
 
     def broadcast_messages(self, read_socket, message):
-        for client in self.clients:
-            if client != read_socket:
-                sender_client = self.clients[read_socket]
-                client.send(sender_client['header'] + sender_client['data']
-                            + message['header'] + message['data'])
+        with self.lock:
+            for client in self.clients:
+                if client != read_socket:
+                    sender_client = self.clients[read_socket]
+                    client.send(sender_client['header'] + sender_client['data']
+                                + message['header'] + message['data'])
 
     def run_client_socket(self, socket):
         while socket:
             message = self.read_message(socket)
             if message is False:
-                print('Closed connection from: {}'.format(self.clients[socket]['data'].decode('utf-8')))
-                del self.clients[socket]
+                with self.lock:
+                    print('Closed connection from: {}'.format(self.clients[socket]['data'].decode('utf-8')))
+                    del self.clients[socket]
 
             print(f'Received message from {self.clients[socket]["data"].decode("utf-8")}:'
                   f' {message["data"].decode("utf-8")}')
