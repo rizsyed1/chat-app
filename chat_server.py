@@ -2,6 +2,7 @@ import server_socket
 import argparse
 import concurrent.futures
 import logging
+import logger
 import threading
 
 
@@ -11,15 +12,19 @@ class Server:
         self.clients = {}
         self.HEADER_LENGTH = 16
         self.lock = threading.Lock()
+        self.instantiated_logger = logger.Logger(__name__)
+        self.logger = self.instantiated_logger.initialise_logging()
 
     def remove_client(self, future):
         try:
             client_socket_to_remove = future.result()
             with self.lock:
-                print('Closed connection from: {}'.format(self.clients[client_socket_to_remove]['data'].decode('utf-8')))
+                self.logger.info(
+                    'Closed connection from: {}'.format(self.clients[client_socket_to_remove]['data'].decode('utf-8'))
+                )
                 del self.clients[client_socket_to_remove]
         except Exception as e:
-            logging.exception(e)
+            self.logger.exception(e)
 
     def add_client(self, name, socket):
         with self.lock:
@@ -54,8 +59,8 @@ class Server:
             if message is False:
                 return socket
 
-            print(f'Received message from {self.clients[socket]["data"].decode("utf-8")}:'
-                  f' {message["data"].decode("utf-8")}')
+            self.logger.info(f'Received message from {self.clients[socket]["data"].decode("utf-8")}:'
+                             f'{message["data"].decode("utf-8")}')
 
             self.broadcast_messages(socket, message)
 
@@ -63,7 +68,8 @@ class Server:
 parser = argparse.ArgumentParser(
     prog='chat-server',
     usage='%(prog)s [options] IP PORT',
-    description='Set up the chat window')
+    description='Set up the chat window'
+)
 
 parser.add_argument(
     'IP',
@@ -71,7 +77,8 @@ parser.add_argument(
     default='127.0.0.1',
     metavar='IP-address',
     type=str,
-    help='the IP address of client socket')
+    help='the IP address of client socket'
+)
 
 parser.add_argument(
     'PORT',
@@ -79,7 +86,8 @@ parser.add_argument(
     default=1234,
     metavar='Port',
     type=str,
-    help='the port of the client socket')
+    help='the port of the client socket'
+)
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -94,7 +102,7 @@ if __name__ == '__main__':
 
             server.add_client(client_name, client_socket)
 
-            print("Accepted new connection from {}:{}, name: {}".format(
+            logging.info("Accepted new connection from {}:{}, name: {}".format(
                 *client_address, client_name['data'].decode('utf-8'))
             )
 

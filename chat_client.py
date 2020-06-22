@@ -3,6 +3,7 @@ import errno
 import sys
 import argparse
 import threading
+import logger
 
 
 class Client:
@@ -12,6 +13,8 @@ class Client:
         self.my_username = ''
         self.HEADER_LENGTH = 16
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.instantiated_logger = logger.Logger(__name__)
+        self.logger = self.instantiated_logger.initialise_logging()
 
     def set_up_username(self):
         self.my_username = input("Username: ")
