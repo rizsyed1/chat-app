@@ -29,7 +29,7 @@ class Client:
             message = input(f'{self.my_username} >')
             if message:
                 message = message.encode('utf-8')
-                message_header = f"{len(message):<{self.HEADER_LENGTH}}".encode('utf-8')
+                message_header = f'{len(message):<{self.HEADER_LENGTH}}'.encode('utf-8')
                 self.client_socket.send(message_header + message)
 
     def receive_message(self):
