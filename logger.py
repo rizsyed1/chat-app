@@ -11,6 +11,7 @@ class Logger(object):
         self.log_directory = log_directory
         self.file = file
         self.logging_logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(self.file)
 
     def create_new_file(self):
         """Creates a new log file from the current date time stamp and places it inside log directory"""
@@ -42,24 +43,20 @@ class Logger(object):
         return file_path
 
     def initialise_logging(self):
-        logger = logging.getLogger(self.file)
-        logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.DEBUG)
 
         self.file_handler = logging.FileHandler(self.create_new_file())
+        self.file_handler.setLevel(logging.DEBUG)
         self.stream_handler = logging.StreamHandler()
+        self.stream_handler.setLevel(logging.INFO)
 
         self.stream_handler.setFormatter(logging.Formatter('| {levelname:<5} | {module}: {message}', style='{'))
         self.file_handler.setFormatter(logging.Formatter(
             '{asctime} | {levelname:<5} | {module:20}: {funcName:30}: {message}', style='{'
         ))
 
-        logger.addHandler(self.stream_handler)
-        logger.addHandler(self.file_handler)
-
-        self.stream_handler.setLevel(logging.INFO)
-        self.file_handler.setLevel(logging.DEBUG)
-
-        return logger
+        self.logger.addHandler(self.stream_handler)
+        self.logger.addHandler(self.file_handler)
 
     def toggle_stream_debug(self):
         logger = logging.getLogger(self.file)
@@ -75,7 +72,7 @@ class Logger(object):
 
             self.logging_logger.info('stream logger set to DEBUG')
 
-        elif logger.level == logging.DEBUG:
+        elif self.stream_handler.level == logging.DEBUG:
             self.stream_handler.setLevel(logging.INFO)
 
             console_formatter = logging.Formatter(
@@ -85,7 +82,3 @@ class Logger(object):
             self.stream_handler.setFormatter(console_formatter)
 
             self.logging_logger.info('stream logger set to INFO')
-
-
-
-
