@@ -1,72 +1,99 @@
 import server_socket
 import argparse
-import socket
-import concurrent.futures
 import logging
 import logger
-import threading
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_SERIALIZABLE, ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.errors
+import select
 
 
 class Server:
     def __init__(self, IP='127.0.0.1', PORT=1234):
-        self.current_socket = server_socket.Socket(IP, PORT)
+        self.server_socket = server_socket.Socket(IP, PORT)
         self.clients = {}
+        self.sockets_list = [self.server_socket]
         self.HEADER_LENGTH = 16
-        self.lock = threading.Lock()
         self.instantiated_logger = logger.Logger(__name__)
         self.instantiated_logger.initialise_logging()
+        self.root_database_connection = psycopg2.connect(
+            dbname='postgres', user='rizwan', host='localhost', password='password123'
+        )
+        self.dbname = 'chatdb'
 
-    def remove_client(self, future):
+    def remove_client(self, socket):
         try:
-            client_socket_to_remove = future.result()
-            with self.lock:
-                self.instantiated_logger.logger.info(
-                    'Closed connection from: {}'.format(self.clients[client_socket_to_remove]['data'].decode('utf-8'))
-                )
-                del self.clients[client_socket_to_remove]
+            self.instantiated_logger.logger.info(
+                'Closed connection from: {}'.format(self.clients[socket]['data'].decode('utf-8'))
+            )
+
+            self.sockets_list.remove(socket)
+
+            del self.clients[socket]
+
         except Exception as e:
             self.instantiated_logger.logger.exception(e)
 
     def add_client(self, name, socket):
-        with self.lock:
-            self.clients[socket] = name
+        self.clients[socket] = name
 
     def read_message(self, socket_client):
         try:
             message_header = socket_client.recv(self.HEADER_LENGTH)
 
-            if not len(message_header):
+            """If socket closed by client, or as soon as client used shutdown"""
+            if len(message_header) == 0:
                 return False
 
             message_length = int(message_header.decode('utf-8').strip())
-
             return {'header': message_header, 'data': socket_client.recv(message_length)}
 
         except Exception as e:
-            print(f'error is {str(e)}')
+            # Any other exception - something happened. Exit
+            print('Reading error: {}'.format(str(e)))
             return False
 
     def broadcast_messages(self, read_socket, message):
-        with self.lock:
-            for client in self.clients:
-                if client != read_socket:
-                    sender_client = self.clients[read_socket]
-                    client.send(sender_client['header'] + sender_client['data']
-                                + message['header'] + message['data'])
+        for client in self.clients:
+            if client != read_socket:
+                sender_client = self.clients[read_socket]
+                client.send(sender_client['header'] + sender_client['data']
+                            + message['header'] + message['data'])
 
     def run_client_socket(self, socket):
-        while socket:
-            message = self.read_message(socket)
-            if message is False:
-                return socket
+        message = self.read_message(socket)
 
-            self.instantiated_logger.logger.info(f'Received message from {self.clients[socket]["data"].decode("utf-8")}:'
-                             f' {message["data"].decode("utf-8")}')
+        if message is False:
+            self.remove_client(socket)
 
-            self.broadcast_messages(socket, message)
+        self.instantiated_logger.logger.info(
+            f'Received message from {self.clients[socket]["data"].decode("utf-8")}:'
+            f' {message["data"].decode("utf-8")}'
+        )
+
+        self.broadcast_messages(socket, message)
+
+    def create_username_database(self):
+        """Creates database and table of usernames"""
+
+        """Create database"""
+        dbname = self.dbname
+        cur = self.root_database_connection.cursor()
+        self.root_database_connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur.execute('CREATE DATABASE ' + dbname)
+        cur.close()
+        self.root_database_connection.close()
+
+        """Connect to created database"""
+        conn = psycopg2.connect(dbname=dbname, user='rizwan', host='localhost', password='password123')
+        conn.set_isolation_level(ISOLATION_LEVEL_SERIALIZABLE)
+
+        """Create a table of usernames"""
+        cur = conn.cursor()
+        cur.execute('CREATE TABLE usernames(username varchar(30))')
+        conn.commit()
+        cur.close()
+        return conn
 
 
 parser = argparse.ArgumentParser(
@@ -93,78 +120,102 @@ parser.add_argument(
     help='the port of the client socket'
 )
 
-def create_username_database():
-    """Create database"""
-    conn = psycopg2.connect(dbname='postgres', user='rizwan', host='localhost', password='password123')
-    dbname = 'chatdb'
-    cur = conn.cursor()
-    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    cur.execute('CREATE DATABASE ' + dbname)
-    cur.close()
-    conn.close()
-
-    """Connect to created database"""
-    conn = psycopg2.connect(dbname=dbname, user='rizwan', host='localhost', password='password123')
-    conn.set_isolation_level(ISOLATION_LEVEL_SERIALIZABLE)
-
-    """Create a table of usernames"""
-    cur = conn.cursor()
-    cur.execute('CREATE TABLE usernames(username varchar(30))')
-    conn.commit()
-    cur.close()
-    return conn
-
 
 def accept_user_name(db_connection, client_socket, username):
     cur = db_connection.cursor()
-    username_accepted = False
 
-    while not username_accepted:
-        cur.execute("SELECT username FROM usernames WHERE username='{}';".format(username))
-        row = cur.fetchone()
+    cur.execute("SELECT username FROM usernames WHERE username='{}';".format(username))
+    row = cur.fetchone()
 
-        if row is None:
-            cur.execute("INSERT INTO usernames (username) VALUES ('{}');".format(username))
-            db_connection.commit()
-            accept_username_message = 'Username assigned to you'.encode('utf-8')
-            accept_username_message_header = f'{len(accept_username_message):<{server.HEADER_LENGTH}}'.encode('utf-8')
-            client_socket.send(accept_username_message_header + accept_username_message)
-            username_accepted = True
-        else:
-            print('else reached')
-            reject_username_message = 'Username already taken - please pick another'.encode('utf-8')
-            reject_username_message_header = f'{len(reject_username_message):<{server.HEADER_LENGTH}}'.encode('utf-8')
-            client_socket.send(reject_username_message_header + reject_username_message)
-
-            client_name = server.read_message(client_socket)
-            username = client_name['data'].decode('utf-8')
-            continue
+    if row is None:
+        cur.execute("INSERT INTO usernames (username) VALUES ('{}');".format(username))
+        db_connection.commit()
+        accept_username_message = 'Username assigned to you'.encode('utf-8')
+        accept_username_message_header = f'{len(accept_username_message):<{server.HEADER_LENGTH}}'.encode('utf-8')
+        client_socket.send(accept_username_message_header + accept_username_message)
+        return username.encode('utf-8')
+    else:
+        reject_username_message = 'Username already taken - please pick another'.encode('utf-8')
+        reject_username_message_header = f'{len(reject_username_message):<{server.HEADER_LENGTH}}'.encode('utf-8')
+        client_socket.send(reject_username_message_header + reject_username_message)
+        return False
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
     server = Server(args.IP, args.PORT)
-    db_connection = create_username_database()
+    db_connection = server.create_username_database()
+    read_again_sockets = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        while True:
-            client_socket, client_address = server.current_socket.accept()
-            client_name = server.read_message(client_socket)
+    while True:
+        read_sockets, _, exception_sockets = select.select(server.sockets_list, [], server.sockets_list)
+
+        for socket in read_sockets:
+            if socket == server.server_socket:
+                client_socket, client_address = server.server_socket.accept()
+                client_name = server.read_message(client_socket)
+
+                if client_name is False:
+                    continue
+
+                username = client_name['data'].decode('utf-8')
+
+                accepted_username = accept_user_name(db_connection, client_socket, username)
+
+                if not accepted_username:
+                    read_again_sockets.append((client_socket, client_address))
+                    continue
+
+                server.sockets_list.append(client_socket)
+
+                server.add_client(client_name, client_socket)
+
+                logging.info("Accepted new connection from {}:{}, name: {}".format(
+                    *client_address, client_name['data'].decode('utf-8'))
+                )
+
+            else:
+                message = server.read_message(socket)
+
+                if message is False:
+                    server.remove_client(socket)
+                    continue
+
+                server.broadcast_messages(socket, message)
+
+        for socket_info in read_again_sockets:
+            socket = socket_info[0]
+            client_address = socket_info[1]
+            client_name = server.read_message(socket)
+            username = client_name['data'].decode('utf-8')
+            accepted_username = accept_user_name(db_connection, socket, username)
+
+            if not accepted_username:
+                continue
+
+            read_again_sockets.remove(socket_info)
+
+            server.sockets_list.append(socket)
+
+            server.add_client(client_name, socket)
 
             logging.info("Accepted new connection from {}:{}, name: {}".format(
                 *client_address, client_name['data'].decode('utf-8'))
             )
 
-            if client_name is False:
-                break
+        for notified_socket in exception_sockets:
+            server.sockets_list.remove(notified_socket)
+            del server.clients[notified_socket]
 
-            username = client_name['data'].decode('utf-8')
 
-            accept_user_name(db_connection, client_socket, username)
 
-            server.add_client(client_name, client_socket)
 
-            executor.submit(server.run_client_socket, client_socket).add_done_callback(server.remove_client)
+
+
+
+
+
+
 
 
 
