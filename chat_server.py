@@ -79,14 +79,12 @@ class Server:
         """Create database"""
         dbname = self.dbname
         cur = self.root_database_connection.cursor()
-        self.root_database_connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cur.execute('CREATE DATABASE ' + dbname)
         cur.close()
         self.root_database_connection.close()
 
         """Connect to created database"""
         conn = psycopg2.connect(dbname=dbname, user='rizwan', host='localhost', password='password123')
-        conn.set_isolation_level(ISOLATION_LEVEL_SERIALIZABLE)
 
         """Create a table of usernames"""
         cur = conn.cursor()
