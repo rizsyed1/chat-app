@@ -2,7 +2,7 @@ import chat_server
 import pytest
 import socket
 import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_SERIALIZABLE, ISOLATION_LEVEL_AUTOCOMMIT
+import select
 import psycopg2.errors
 
 
@@ -10,49 +10,32 @@ HEADER_LENGTH = 16
 
 
 def add_client(server):
-    client_socket, client_address = server.current_socket.accept()
+    client_socket, client_address = server.server_socket.accept()
     client_name = server.read_message(client_socket)
-    server.add_client(client_name, client_socket)
+    server.add_client(client_name, client_socket, client_address)
     return client_socket
 
 def set_and_send_username(username):
     username = username.encode('utf-8')
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(('127.0.0.1', 1234))
-    # s.setblocking(False)
     username_header = f'{len(username):<{HEADER_LENGTH}}'.encode('utf-8')
     s.send(username_header + username)
     return s
 
 
-def create_username_database():
-    """Create database"""
-    conn = psycopg2.connect(dbname='postgres', user='rizwan', host='localhost', password='password123')
-    dbname = 'chatdb'
-    cur = conn.cursor()
-    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    cur.execute('CREATE DATABASE ' + dbname)
-    cur.close()
-    conn.close()
-
-    """Connect to created database"""
-    conn = psycopg2.connect(dbname=dbname, user='rizwan', host='localhost', password='password123')
-    conn.set_isolation_level(ISOLATION_LEVEL_SERIALIZABLE)
-
-    """Create a table of usernames"""
-    cur = conn.cursor()
-    cur.execute('CREATE TABLE usernames(username varchar(30))')
-    conn.commit()
-    cur.close()
-    return conn
-
 @pytest.fixture()
 def set_up_server():
     server = chat_server.Server()
+
+    conn = psycopg2.connect(dbname='postgres', user='rizwan', host='localhost', password='password123')
+    conn.set_session(readonly=False, autocommit=True)
+    cur = conn.cursor()
+    cur.execute("DROP DATABASE IF EXISTS {}".format(server.dbname))
     return server
 
 
-# tests
+"""Tests"""
 def test_add_client(set_up_server):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         username = 'test_user'.encode('utf-8')
@@ -92,9 +75,27 @@ def test_broadcast_message(set_up_server):
 
     assert message == 'sent_message'
 
+
+"""This tests the server rejecting a duplicate username, and then accepting a non-duplicate one"""
 def test_duplicate_username_rejected(set_up_server):
+    db_connection = set_up_server.create_username_database()
     s1 = set_and_send_username('test_user')
+    client_socket, client_address = set_up_server.server_socket.accept()
+    client_name = set_up_server.read_message(client_socket)
+    username = client_name['data'].decode('utf-8')
+    _ = chat_server.accept_user_name(db_connection, client_socket, username, set_up_server)
+    set_up_server.sockets_list.append(client_socket)
+    set_up_server.add_client(client_name, client_socket, client_address)
+
     s2 = set_and_send_username('test_user')
+    read_sockets, _, exception_sockets = select.select(set_up_server.sockets_list, [], set_up_server.sockets_list)
+    for socket in read_sockets:
+        if socket == set_up_server.server_socket:
+            client_socket, client_address = set_up_server.server_socket.accept()
+            client_name = set_up_server.read_message(client_socket)
+            username = client_name['data'].decode('utf-8')
+            _ = chat_server.accept_user_name(db_connection, client_socket, username, set_up_server)
+
     message_header = s2.recv(HEADER_LENGTH)
     message_length = int(message_header.decode('utf-8').strip())
     message = s2.recv(message_length).decode('utf-8')
