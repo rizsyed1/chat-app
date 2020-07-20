@@ -3,7 +3,6 @@ import argparse
 import logging
 import logger
 import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_SERIALIZABLE, ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.errors
 import select
 
@@ -34,8 +33,12 @@ class Server:
         except Exception as e:
             self.instantiated_logger.logger.exception(e)
 
-    def add_client(self, name, socket):
-        self.clients[socket] = name
+    def add_client(self, client_name, socket, client_address):
+        self.instantiated_logger.logger.info("Accepted new connection from {}:{}, name: {}".format(
+            *client_address, client_name['data'].decode('utf-8'))
+        )
+
+        self.clients[socket] = client_name
 
     def read_message(self, socket_client):
         try:
@@ -60,24 +63,12 @@ class Server:
                 client.send(sender_client['header'] + sender_client['data']
                             + message['header'] + message['data'])
 
-    def run_client_socket(self, socket):
-        message = self.read_message(socket)
-
-        if message is False:
-            self.remove_client(socket)
-
-        self.instantiated_logger.logger.info(
-            f'Received message from {self.clients[socket]["data"].decode("utf-8")}:'
-            f' {message["data"].decode("utf-8")}'
-        )
-
-        self.broadcast_messages(socket, message)
-
     def create_username_database(self):
         """Creates database and table of usernames"""
 
         """Create database"""
         dbname = self.dbname
+        self.root_database_connection.set_session(readonly=False, autocommit=True)
         cur = self.root_database_connection.cursor()
         cur.execute('CREATE DATABASE ' + dbname)
         cur.close()
@@ -119,7 +110,7 @@ parser.add_argument(
 )
 
 
-def accept_user_name(db_connection, client_socket, username):
+def accept_user_name(db_connection, client_socket, username, server):
     cur = db_connection.cursor()
 
     cur.execute("SELECT username FROM usernames WHERE username='{}';".format(username))
@@ -158,7 +149,7 @@ if __name__ == '__main__':
 
                 username = client_name['data'].decode('utf-8')
 
-                accepted_username = accept_user_name(db_connection, client_socket, username)
+                accepted_username = accept_user_name(db_connection, client_socket, username, server)
 
                 if not accepted_username:
                     read_again_sockets.append((client_socket, client_address))
@@ -166,11 +157,7 @@ if __name__ == '__main__':
 
                 server.sockets_list.append(client_socket)
 
-                server.add_client(client_name, client_socket)
-
-                logging.info("Accepted new connection from {}:{}, name: {}".format(
-                    *client_address, client_name['data'].decode('utf-8'))
-                )
+                server.add_client(client_name, client_socket, client_address)
 
             else:
                 message = server.read_message(socket)
@@ -179,6 +166,11 @@ if __name__ == '__main__':
                     server.remove_client(socket)
                     continue
 
+                server.instantiated_logger.logger.info(
+                    f'Received message from {server.clients[socket]["data"].decode("utf-8")}:'
+                    f' {message["data"].decode("utf-8")}'
+                )
+
                 server.broadcast_messages(socket, message)
 
         for socket_info in read_again_sockets:
@@ -186,7 +178,7 @@ if __name__ == '__main__':
             client_address = socket_info[1]
             client_name = server.read_message(socket)
             username = client_name['data'].decode('utf-8')
-            accepted_username = accept_user_name(db_connection, socket, username)
+            accepted_username = accept_user_name(db_connection, socket, username, server)
 
             if not accepted_username:
                 continue
@@ -195,7 +187,7 @@ if __name__ == '__main__':
 
             server.sockets_list.append(socket)
 
-            server.add_client(client_name, socket)
+            server.add_client(client_name, socket, client_address)
 
             logging.info("Accepted new connection from {}:{}, name: {}".format(
                 *client_address, client_name['data'].decode('utf-8'))

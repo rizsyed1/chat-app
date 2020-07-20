@@ -86,7 +86,6 @@ class Client:
 
                 username_length = int(username_header.decode('utf-8').strip())
                 sender_username = self.client_socket.recv(username_length).decode('utf-8').strip()
-
                 message_header = self.client_socket.recv(self.HEADER_LENGTH)
                 message_length = int(message_header.decode('utf-8').strip())
                 message = self.client_socket.recv(message_length).decode('utf-8')
