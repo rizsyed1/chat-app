@@ -21,7 +21,6 @@ class Client:
     def set_up_username(self):
         self.client_socket.connect((self.IP, self.PORT))
         my_username = input('Username: ')
-
         while self.my_username == '':
             try:
                 username = my_username.encode('utf-8')
