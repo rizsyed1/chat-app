@@ -34,7 +34,7 @@ class Server:
             self.instantiated_logger.logger.exception(e)
 
     def add_client(self, client_name, socket, client_address):
-        self.instantiated_logger.logger.info("Accepted new connection from {}:{}, name: {}".format(
+        self.instantiated_logger.logger.info("Added client {}:{}, name: {}".format(
             *client_address, client_name['data'].decode('utf-8'))
         )
 
@@ -110,23 +110,57 @@ parser.add_argument(
 )
 
 
+def reject_username(reject_message):
+    reject_message = reject_message.encode('utf-8')
+    reject_message_header = f'{len(reject_message):<{server.HEADER_LENGTH}}'.encode('utf-8')
+    client_socket.send(reject_message_header + reject_message)
+
+
 def accept_user_name(db_connection, client_socket, username, server):
+    if len(username) < 2 or len(username) > 32:
+        reject_username('username should be between 2 and 31 characters long - try again')
+        return False
+
+    banned_chars = "@#:`'\""
+    for char in username:
+        if char in banned_chars:
+            reject_username(
+                'username contains invalid characters - try again ("@", "#", ":" and all quotation marks not accepted)'
+            )
+            return False
+
     cur = db_connection.cursor()
 
-    cur.execute("SELECT username FROM usernames WHERE username='{}';".format(username))
+    cur.execute("""
+        SELECT 
+            username 
+        FROM 
+            usernames 
+        WHERE 
+            username=%(username)s
+    """, {
+        'username': username
+    })
+
     row = cur.fetchone()
 
     if row is None:
-        cur.execute("INSERT INTO usernames (username) VALUES ('{}');".format(username))
+        cur.execute("""
+        INSERT INTO 
+            usernames (username) 
+        VALUES 
+            (%(username)s)
+    """, {
+            'username': username
+        })
+
         db_connection.commit()
         accept_username_message = 'Username assigned to you'.encode('utf-8')
         accept_username_message_header = f'{len(accept_username_message):<{server.HEADER_LENGTH}}'.encode('utf-8')
         client_socket.send(accept_username_message_header + accept_username_message)
         return username.encode('utf-8')
     else:
-        reject_username_message = 'Username already taken - please pick another'.encode('utf-8')
-        reject_username_message_header = f'{len(reject_username_message):<{server.HEADER_LENGTH}}'.encode('utf-8')
-        client_socket.send(reject_username_message_header + reject_username_message)
+        reject_username('Username already taken - please pick another')
         return False
 
 
@@ -134,11 +168,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     server = Server(args.IP, args.PORT)
     db_connection = server.create_username_database()
-    read_again_sockets = []
+    # read_again_sockets = []
 
     while True:
         read_sockets, _, exception_sockets = select.select(server.sockets_list, [], server.sockets_list)
-
         for socket in read_sockets:
             if socket == server.server_socket:
                 client_socket, client_address = server.server_socket.accept()
@@ -148,50 +181,40 @@ if __name__ == '__main__':
                     continue
 
                 username = client_name['data'].decode('utf-8')
-
                 accepted_username = accept_user_name(db_connection, client_socket, username, server)
-
-                if not accepted_username:
-                    read_again_sockets.append((client_socket, client_address))
-                    continue
-
                 server.sockets_list.append(client_socket)
+                if not accepted_username:
+                    continue
 
                 server.add_client(client_name, client_socket, client_address)
 
             else:
                 message = server.read_message(socket)
 
-                if message is False:
-                    server.remove_client(socket)
-                    continue
+                if socket in server.clients:
+                    if message is False:
+                        server.remove_client(socket)
+                        continue
 
-                server.instantiated_logger.logger.info(
-                    f'Received message from {server.clients[socket]["data"].decode("utf-8")}:'
-                    f' {message["data"].decode("utf-8")}'
-                )
+                    server.instantiated_logger.logger.info(
+                        f'Received message from {server.clients[socket]["data"].decode("utf-8")}:'
+                        f' {message["data"].decode("utf-8")}'
+                    )
 
-                server.broadcast_messages(socket, message)
+                    server.broadcast_messages(socket, message)
 
-        for socket_info in read_again_sockets:
-            socket = socket_info[0]
-            client_address = socket_info[1]
-            client_name = server.read_message(socket)
-            username = client_name['data'].decode('utf-8')
-            accepted_username = accept_user_name(db_connection, socket, username, server)
+                else:
+                    username = message['data'].decode('utf-8')
+                    accepted_username = accept_user_name(db_connection, socket, username, server)
+                    if not accepted_username:
+                        continue
+                    server.sockets_list.append(socket)
 
-            if not accepted_username:
-                continue
+                    server.add_client(message, socket, socket.getpeername())
 
-            read_again_sockets.remove(socket_info)
-
-            server.sockets_list.append(socket)
-
-            server.add_client(client_name, socket, client_address)
-
-            logging.info("Accepted new connection from {}:{}, name: {}".format(
-                *client_address, client_name['data'].decode('utf-8'))
-            )
+                    logging.info("Accepted new connection from {} name: {}".format(
+                        socket.getpeername, message['data'].decode('utf-8'))
+                    )
 
         for notified_socket in exception_sockets:
             server.sockets_list.remove(notified_socket)
