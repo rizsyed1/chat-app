@@ -74,7 +74,7 @@ class Client:
             elif response_message == self.username_accepted_message:
                 self.msg_list.insert(tk.END, self.username_accepted_message)
                 self.my_username = username.decode('utf-8')
-                self.send_button = tk.Button(self.window, text='Send', command=self.send_message_thread)
+                self.send_button.configure(text='Send', command=self.send_message_thread)
                 self.entry_field.bind('<Return>', self.send_message_thread)
                 return
             else:
