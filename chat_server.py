@@ -8,7 +8,7 @@ import select
 
 
 class Server:
-    def __init__(self, IP='127.0.0.1', PORT=1234):
+    def __init__(self, IP='206.189.119.156', PORT=1234):
         self.server_socket = server_socket.Socket(IP, PORT)
         self.clients = {}
         self.sockets_list = [self.server_socket]
