@@ -84,7 +84,7 @@ class Client:
                 return
 
         except Exception as e:
-            # Any other exception - something happened. Exit
+            """ Any other exception - something happened. Exit"""
             self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}')
             sys.exit()
 
@@ -114,23 +114,8 @@ class Client:
                     message = self.client_socket.recv(message_length).decode('utf-8')
                     self.msg_list.insert(tk.END, f'{sender_username} > {message}')
 
-                except IOError as e:
-                    # This is normal on non blocking connections - when
-                    #  there are no incoming data, error is going to be
-                    # raised
-                    # Some operating systems will indicate that
-                    # using AGAIN, and some using WOULDBLOCK error code
-                    # We are going to check for both - if one of
-                    # them - that's expected, means no incoming data,
-                    # continue as normal
-                    # If we got different error code - something
-                    # happened
-                    if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                        self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}')
-                        sys.exit()
-
                 except Exception as e:
-                    # Any other exception - something happened. Exit
+                    """Something happened. Exit"""
                     self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}')
                     sys.exit()
 
