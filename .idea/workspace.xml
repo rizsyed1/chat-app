@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:chore" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:chore" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="9d6fe672-792b-48d3-b67c-649fb43b7ed0" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1dwLOAYK5GRCOei7nFU7LVcyIdm" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="settings.editor.selected.configurable" value="preferences.editor" />
+  </component>
+  <component name="RunManager" selected="Python.chat_server">
+    <configuration name="chat_client" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="chat-app" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/chat_client.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="chat_server" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="chat-app" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/chat_server.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="logger" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="chat-app" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/logger.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.chat_server" />
+        <item itemvalue="Python.chat_client" />
+        <item itemvalue="Python.logger" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="9d6fe672-792b-48d3-b67c-649fb43b7ed0" name="Default Changelist" comment="" />
+      <created>1593331173925</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1593331173925</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="808" y="376" width="297" height="298" key="#Notifications" timestamp="1593870739516">
+      <screen x="0" y="0" width="1920" height="1048" />
+    </state>
+    <state x="808" y="376" width="297" height="298" key="#Notifications/0.0.1920.1048@0.0.1920.1048" timestamp="1593870739516" />
+    <state x="413" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1593549823358">
+      <screen x="0" y="0" width="1920" height="1048" />
+    </state>
+    <state x="413" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1048@0.0.1920.1048" timestamp="1593549823358" />
+    <state x="710" y="354" width="561" height="405" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1595076759420">
+      <screen x="72" y="27" width="1848" height="1053" />
+    </state>
+    <state x="710" y="354" width="561" height="405" key="#com.intellij.fileTypes.FileTypeChooser/72.27.1848.1053/1920.0.1920.1080@72.27.1848.1053" timestamp="1595076759420" />
+    <state x="670" y="312" width="536" height="602" key="FileChooserDialogImpl" timestamp="1593331326591">
+      <screen x="0" y="0" width="1920" height="1048" />
+    </state>
+    <state x="670" y="312" width="536" height="602" key="FileChooserDialogImpl/0.0.1920.1048@0.0.1920.1048" timestamp="1593331326591" />
+    <state width="1823" height="275" key="GridCell.Tab.0.bottom" timestamp="1594841563755">
+      <screen x="72" y="27" width="1848" height="1053" />
+    </state>
+    <state width="1892" height="263" key="GridCell.Tab.0.bottom/0.0.1920.1048@0.0.1920.1048" timestamp="1594035426658" />
+    <state width="1823" height="275" key="GridCell.Tab.0.bottom/72.27.1848.1053/1920.0.1920.1080@72.27.1848.1053" timestamp="1594841563755" />
+    <state width="1823" height="275" key="GridCell.Tab.0.center" timestamp="1594841563755">
+      <screen x="72" y="27" width="1848" height="1053" />
+    </state>
+    <state width="1892" height="263" key="GridCell.Tab.0.center/0.0.1920.1048@0.0.1920.1048" timestamp="1594035426657" />
+    <state width="1823" height="275" key="GridCell.Tab.0.center/72.27.1848.1053/1920.0.1920.1080@72.27.1848.1053" timestamp="1594841563755" />
+    <state width="1823" height="275" key="GridCell.Tab.0.left" timestamp="1594841563755">
+      <screen x="72" y="27" width="1848" height="1053" />
+    </state>
+    <state width="1892" height="263" key="GridCell.Tab.0.left/0.0.1920.1048@0.0.1920.1048" timestamp="1594035426656" />
+    <state width="1823" height="275" key="GridCell.Tab.0.left/72.27.1848.1053/1920.0.1920.1080@72.27.1848.1053" timestamp="1594841563755" />
+    <state width="1823" height="275" key="GridCell.Tab.0.right" timestamp="1594841563755">
+      <screen x="72" y="27" width="1848" height="1053" />
+    </state>
+    <state width="1892" height="263" key="GridCell.Tab.0.right/0.0.1920.1048@0.0.1920.1048" timestamp="1594035426657" />
+    <state width="1823" height="275" key="GridCell.Tab.0.right/72.27.1848.1053/1920.0.1920.1080@72.27.1848.1053" timestamp="1594841563755" />
+    <state width="1892" height="327" key="GridCell.Tab.1.bottom" timestamp="1593549810825">
+      <screen x="0" y="0" width="1920" height="1048" />
+    </state>
+    <state width="1892" height="327" key="GridCell.Tab.1.bottom/0.0.1920.1048@0.0.1920.1048" timestamp="1593549810825" />
+    <state width="1892" height="327" key="GridCell.Tab.1.center" timestamp="1593549810824">
+      <screen x="0" y="0" width="1920" height="1048" />
+    </state>
+    <state width="1892" height="327" key="GridCell.Tab.1.center/0.0.1920.1048@0.0.1920.1048" timestamp="1593549810824" />
+    <state width="1892" height="327" key="GridCell.Tab.1.left" timestamp="1593549810824">
+      <screen x="0" y="0" width="1920" height="1048" />
+    </state>
+    <state width="1892" height="327" key="GridCell.Tab.1.left/0.0.1920.1048@0.0.1920.1048" timestamp="1593549810824" />
+    <state width="1892" height="327" key="GridCell.Tab.1.right" timestamp="1593549810824">
+      <screen x="0" y="0" width="1920" height="1048" />
+    </state>
+    <state width="1892" height="327" key="GridCell.Tab.1.right/0.0.1920.1048@0.0.1920.1048" timestamp="1593549810824" />
+    <state x="383" y="98" width="1022" height="737" key="SettingsEditor" timestamp="1594547197156">
+      <screen x="72" y="27" width="1848" height="1053" />
+    </state>
+    <state x="323" y="71" width="1273" height="907" key="SettingsEditor/0.0.1920.1048@0.0.1920.1048" timestamp="1594059098851" />
+    <state x="383" y="98" width="1022" height="737" key="SettingsEditor/72.27.1848.1053/1920.0.1920.1080@72.27.1848.1053" timestamp="1594547197156" />
+    <state x="766" y="467" width="460" height="179" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1596241417758">
+      <screen x="72" y="27" width="1848" height="1053" />
+    </state>
+    <state x="766" y="467" width="460" height="179" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/72.27.1848.1053/1920.0.1920.1080@72.27.1848.1053" timestamp="1596241417758" />
+    <state x="659" y="259" width="672" height="678" key="search.everywhere.popup" timestamp="1595703867874">
+      <screen x="72" y="27" width="1848" height="1053" />
+    </state>
+    <state x="659" y="259" width="672" height="678" key="search.everywhere.popup/72.27.1848.1053/1920.0.1920.1080@72.27.1848.1053" timestamp="1595703867874" />
+  </component>
+</project>
