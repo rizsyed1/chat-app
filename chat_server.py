@@ -52,7 +52,7 @@ class Server:
             return {'header': message_header, 'data': socket_client.recv(message_length)}
 
         except Exception as e:
-            # Any other exception - something happened. Exit
+            """Any other exception - something happened. Exit"""
             return False
 
     def broadcast_messages(self, read_socket, message):
@@ -167,7 +167,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     server = Server(args.IP, args.PORT)
     db_connection = server.create_username_database()
-    # read_again_sockets = []
 
     while True:
         read_sockets, _, exception_sockets = select.select(server.sockets_list, [], server.sockets_list)

@@ -19,20 +19,20 @@ class Logger(object):
         file_name = fr'{self.file} {current_date_time}.log'
         file_path = os.path.join('Logs', file_name)
 
-        # if logs directory does not exist make new directory
+        """if logs directory does not exist make new directory"""
         if not os.path.isdir(self.log_directory):
             self.logging_logger.info('detected no log directory')
             os.mkdir(self.log_directory)
             file = open(file_path, 'w+')
             file.close()
 
-        # create new log file if it does exist
+        """create new log file if it does exist"""
         if not os.path.exists(file_path):
             self.logging_logger.info('created new log file')
             file = open(file_path, 'w+')
             file.close()
 
-        # remove any files that are older than 30 days
+        """remove any files that are older than 30 days"""
         now = time.time()
         for log in os.listdir(self.log_directory):
             log = os.path.join(self.log_directory, log)
