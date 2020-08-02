@@ -53,7 +53,6 @@ class Server:
 
         except Exception as e:
             # Any other exception - something happened. Exit
-            print('Reading error: {}'.format(str(e)))
             return False
 
     def broadcast_messages(self, read_socket, message):

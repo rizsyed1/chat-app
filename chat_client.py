@@ -99,42 +99,43 @@ class Client:
         return
 
     def receive_message(self):
-        while not self.client_closed and len(self.my_username) > 1:
-            try:
-                username_header = self.client_socket.recv(self.HEADER_LENGTH)
+        while True:
+            if not self.client_closed and self.my_username:
+                try:
+                    username_header = self.client_socket.recv(self.HEADER_LENGTH)
 
-                if not len(username_header):
+                    if not len(username_header):
+                        sys.exit()
+
+                    username_length = int(username_header.decode('utf-8').strip())
+                    sender_username = self.client_socket.recv(username_length).decode('utf-8').strip()
+                    message_header = self.client_socket.recv(self.HEADER_LENGTH)
+                    message_length = int(message_header.decode('utf-8').strip())
+                    message = self.client_socket.recv(message_length).decode('utf-8')
+                    self.msg_list.insert(tk.END, f'{sender_username} > {message}')
+
+                except IOError as e:
+                    # This is normal on non blocking connections - when
+                    #  there are no incoming data, error is going to be
+                    # raised
+                    # Some operating systems will indicate that
+                    # using AGAIN, and some using WOULDBLOCK error code
+                    # We are going to check for both - if one of
+                    # them - that's expected, means no incoming data,
+                    # continue as normal
+                    # If we got different error code - something
+                    # happened
+                    if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                        self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}')
+                        sys.exit()
+
+                except Exception as e:
+                    # Any other exception - something happened. Exit
+                    self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}')
                     sys.exit()
 
-                username_length = int(username_header.decode('utf-8').strip())
-                sender_username = self.client_socket.recv(username_length).decode('utf-8').strip()
-                message_header = self.client_socket.recv(self.HEADER_LENGTH)
-                message_length = int(message_header.decode('utf-8').strip())
-                message = self.client_socket.recv(message_length).decode('utf-8')
-                self.msg_list.insert(tk.END, f'{sender_username} > {message}')
-
-            except IOError as e:
-                # This is normal on non blocking connections - when
-                #  there are no incoming data, error is going to be
-                # raised
-                # Some operating systems will indicate that
-                # using AGAIN, and some using WOULDBLOCK error code
-                # We are going to check for both - if one of
-                # them - that's expected, means no incoming data,
-                # continue as normal
-                # If we got different error code - something
-                # happened
-                if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                    self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}');
-                    sys.exit()
-
-            except Exception as e:
-                # Any other exception - something happened. Exit
-                self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}');
-                sys.exit()
-
-        if self.client_closed:
-            return
+            if self.client_closed:
+                return
 
 
 parser = argparse.ArgumentParser(
@@ -166,11 +167,13 @@ client.msg_list.insert(
     tk.END, f'{client.chat_bot_name} > Please enter your username'
 )
 
-tk.mainloop()
-
 receive_thread = threading.Thread(target=client.receive_message)
 receive_thread.daemon = True
 receive_thread.start()
+
+tk.mainloop()
+
+
 
 
 
