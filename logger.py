@@ -4,7 +4,7 @@ import os
 import time
 
 
-class Logger(object):
+class Logger():
     def __init__(self, file, log_directory='Logs'):
         self.stream_handler = None
         self.file_handler = None
