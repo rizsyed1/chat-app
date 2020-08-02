@@ -109,7 +109,7 @@ parser.add_argument(
 )
 
 
-def reject_username(reject_message):
+def reject_username(reject_message, server, client_socket):
     reject_message = reject_message.encode('utf-8')
     reject_message_header = f'{len(reject_message):<{server.HEADER_LENGTH}}'.encode('utf-8')
     client_socket.send(reject_message_header + reject_message)
@@ -117,7 +117,7 @@ def reject_username(reject_message):
 
 def accept_user_name(db_connection, client_socket, username, server):
     if len(username) < 2 or len(username) > 32:
-        reject_username('username should be between 2 and 31 characters long - try again')
+        reject_username('username should be between 2 and 31 characters long - try again', server, client_socket)
         return False
 
     banned_chars = "@#:`'\""
@@ -125,7 +125,7 @@ def accept_user_name(db_connection, client_socket, username, server):
         if char in banned_chars:
             reject_username(
                 'username contains invalid characters - try again ("@", "#", ":" and all quotation marks not accepted)'
-            )
+            , server, client_socket)
             return False
 
     cur = db_connection.cursor()
@@ -159,7 +159,7 @@ def accept_user_name(db_connection, client_socket, username, server):
         client_socket.send(accept_username_message_header + accept_username_message)
         return username.encode('utf-8')
     else:
-        reject_username('Username already taken - please pick another')
+        reject_username('Username already taken - please pick another', server, client_socket)
         return False
 
 
