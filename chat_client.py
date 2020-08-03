@@ -54,39 +54,68 @@ class Client:
         self.window.quit()
 
     def send_username(self):
-        try:
-            username = self.my_msg.get()
-            username = username.encode('utf-8')
-            username_header = f'{len(username):<{self.HEADER_LENGTH}}'.encode('utf-8')
-            self.client_socket.send(username_header + username)
-            response_header = self.client_socket.recv(self.HEADER_LENGTH)
+        while True:
+            try:
+                username = self.my_msg.get()
+                username = username.encode('utf-8')
+                username_header = f'{len(username):<{self.HEADER_LENGTH}}'.encode('utf-8')
+                print('send_username socket.send about to start')
+                self.client_socket.send(username_header + username)
+                print('send_username socket.send completed')
+                response_header = self.client_socket.recv(self.HEADER_LENGTH)
+                print('send_username response header: ', response_header)
 
-            if not len(response_header):
+                if not len(response_header):
+                    sys.exit()
+
+                response_length = int(response_header.decode('utf-8').strip())
+                response_message = self.client_socket.recv(response_length).decode('utf-8').strip()
+
+                if response_message == self.username_taken_message:
+                    print('send_username first if-condition reached')
+                    self.msg_list.insert(tk.END, self.username_taken_message)
+                    self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Please enter your username')
+                    continue
+                elif response_message == self.username_accepted_message:
+                    print('send_username second if-condition reached')
+                    self.msg_list.insert(tk.END, self.username_accepted_message)
+                    self.my_username = username.decode('utf-8')
+                    print('send_username self.my_username set in second if-condition')
+                    self.send_button.configure(text='Send', command=self.send_message_thread)
+                    self.entry_field.bind('<Return>', self.send_message_thread)
+
+                    receive_thread = threading.Thread(target=client.receive_message)
+                    receive_thread.daemon = True
+                    receive_thread.start()
+
+                    return
+                else:
+                    print('send_username else reached')
+                    self.msg_list.insert(
+                        tk.END, f'{self.chat_bot_name} > server error: {response_message} re-enter username please'
+                    )
+                    continue
+
+            except IOError as e:
+                """This is normal on non blocking connections - when there are no incoming data, error is going to be raised
+                Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
+                We are going to check for both - if one of them - that's expected, means no incoming data, continue as normal
+                If we got different error code - something happened"""
+                if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                    print(f'send_username 1st exception: Reading error: {str(e)}')
+                    self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}')
+                    sys.exit()
+
+                """Did not receive anything"""
+                print('send_username return reached - error is ', e)
+                continue
+
+            except Exception as e:
+                """ Any other exception - something happened. Exit"""
+                print(f'1st exception: Reading error: {str(e)}')
+                self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}')
                 sys.exit()
 
-            response_length = int(response_header.decode('utf-8').strip())
-            response_message = self.client_socket.recv(response_length).decode('utf-8').strip()
-
-            if response_message == self.username_taken_message:
-                self.msg_list.insert(tk.END, self.username_taken_message)
-                self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Please enter your username')
-                return
-            elif response_message == self.username_accepted_message:
-                self.msg_list.insert(tk.END, self.username_accepted_message)
-                self.my_username = username.decode('utf-8')
-                self.send_button.configure(text='Send', command=self.send_message_thread)
-                self.entry_field.bind('<Return>', self.send_message_thread)
-                return
-            else:
-                self.msg_list.insert(
-                    tk.END, f'{self.chat_bot_name} > server error: {response_message} re-enter username please'
-                )
-                return
-
-        except Exception as e:
-            """ Any other exception - something happened. Exit"""
-            self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}')
-            sys.exit()
 
     def send_message(self):
         message = self.my_msg.get()
@@ -99,8 +128,10 @@ class Client:
         return
 
     def receive_message(self):
+        # print('receive_message starting....')
         while True:
             if not self.client_closed and self.my_username:
+                # print('receive_message if-condition in while loop passed....')
                 try:
                     username_header = self.client_socket.recv(self.HEADER_LENGTH)
 
@@ -112,10 +143,23 @@ class Client:
                     message_header = self.client_socket.recv(self.HEADER_LENGTH)
                     message_length = int(message_header.decode('utf-8').strip())
                     message = self.client_socket.recv(message_length).decode('utf-8')
+                    print('message received: ', message)
                     self.msg_list.insert(tk.END, f'{sender_username} > {message}')
+
+                except IOError as e:
+                    """This is normal on non blocking connections - when there are no incoming data, error is going to be raised
+                    Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
+                    We are going to check for both - if one of them - that's expected, means no incoming data, continue as normal
+                    If we got different error code - something happened"""
+                    if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                        self.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
+
+                    """Client did not receive anything"""
+                    continue
 
                 except Exception as e:
                     """Something happened. Exit"""
+                    print(f'receive_message exception: Reading error: {str(e)}')
                     self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}')
                     sys.exit()
 
@@ -147,14 +191,11 @@ parser.add_argument(
 args = parser.parse_args()
 client = Client(args.IP, args.PORT)
 client.client_socket.connect((client.IP, client.PORT))
+client.client_socket.setblocking(False)
 
 client.msg_list.insert(
     tk.END, f'{client.chat_bot_name} > Please enter your username'
 )
-
-receive_thread = threading.Thread(target=client.receive_message)
-receive_thread.daemon = True
-receive_thread.start()
 
 tk.mainloop()
 

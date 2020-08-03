@@ -5,10 +5,12 @@ import logger
 import psycopg2
 import psycopg2.errors
 import select
+import errno
+import sys
 
 
 class Server:
-    def __init__(self, IP='206.189.119.156', PORT=1234):
+    def __init__(self, IP, PORT):
         self.server_socket = server_socket.Socket(IP, PORT)
         self.clients = {}
         self.sockets_list = [self.server_socket]
@@ -41,18 +43,24 @@ class Server:
         self.clients[socket] = client_name
 
     def read_message(self, socket_client):
+        print('read message')
         try:
+            print('read_message try block reached')
             message_header = socket_client.recv(self.HEADER_LENGTH)
+            print('read_message after header socket.recv')
 
             """If socket closed by client, or as soon as client used shutdown"""
             if len(message_header) == 0:
+                print('read message returns False')
                 return False
 
             message_length = int(message_header.decode('utf-8').strip())
+            print('read message returns proper obj')
             return {'header': message_header, 'data': socket_client.recv(message_length)}
 
         except Exception as e:
             """Any other exception - something happened. Exit"""
+            print('read message hits exception, returns False ', e)
             return False
 
     def broadcast_messages(self, read_socket, message):
@@ -124,8 +132,8 @@ def accept_user_name(db_connection, client_socket, username, server):
     for char in username:
         if char in banned_chars:
             reject_username(
-                'username contains invalid characters - try again ("@", "#", ":" and all quotation marks not accepted)'
-            , server, client_socket)
+                'username contains invalid characters - try again ("@", "#", ":" and all quotation marks not accepted)',
+                server, client_socket)
             return False
 
     cur = db_connection.cursor()
@@ -172,22 +180,54 @@ if __name__ == '__main__':
         read_sockets, _, exception_sockets = select.select(server.sockets_list, [], server.sockets_list)
         for socket in read_sockets:
             if socket == server.server_socket:
-                client_socket, client_address = server.server_socket.accept()
-                client_name = server.read_message(client_socket)
+                try:
+                    client_socket, client_address = server.server_socket.accept()
+                    server.sockets_list.append(client_socket)
+                    client_socket.setblocking(False)
+                    client_name = server.read_message(client_socket)
 
-                if client_name is False:
+                    if client_name is False:
+                        continue
+
+                    username = client_name['data'].decode('utf-8')
+                    print('username is: ', username)
+                    accepted_username = accept_user_name(db_connection, client_socket, username, server)
+                    if not accepted_username:
+                        continue
+
+                    server.add_client(client_name, client_socket, client_address)
+
+                except IOError as e:
+                    """This is normal on non blocking connections - when there are no incoming data, error is going to be raised
+                    Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
+                    We are going to check for both - if one of them - that's expected, means no incoming data, continue as normal
+                    If we got different error code - something happened"""
+                    if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                        server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
+                    """Server  did not receive anything"""
                     continue
 
-                username = client_name['data'].decode('utf-8')
-                accepted_username = accept_user_name(db_connection, client_socket, username, server)
-                server.sockets_list.append(client_socket)
-                if not accepted_username:
-                    continue
-
-                server.add_client(client_name, client_socket, client_address)
+                except Exception as e:
+                    """ Any other exception - something happened."""
+                    server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
 
             else:
-                message = server.read_message(socket)
+                try:
+                    message = server.read_message(socket)
+
+                except IOError as e:
+                    """This is normal on non blocking connections - when there are no incoming data, error is going to be raised
+                    Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
+                    We are going to check for both - if one of them - that's expected, means no incoming data, continue as normal
+                    If we got different error code - something happened"""
+                    if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                        server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
+                    """Server  did not receive anything"""
+                    continue
+
+                except Exception as e:
+                    """ Any other exception - something happened."""
+                    server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
 
                 if socket in server.clients:
                     if message is False:
