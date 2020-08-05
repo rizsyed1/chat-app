@@ -26,17 +26,13 @@ def set_and_send_username(username):
 
 @pytest.fixture()
 def set_up_server():
-    server = chat_server.Server()
-
-    conn = psycopg2.connect(dbname='postgres', user='rizwan', host='localhost', password='password123')
-    conn.set_session(readonly=False, autocommit=True)
-    cur = conn.cursor()
-    cur.execute("DROP DATABASE IF EXISTS {}".format(server.dbname))
+    server = chat_server.Server('127.0.0.1', 1234)
     return server
 
 
 """Tests"""
 def test_add_client(set_up_server):
+    print('test add client started....')
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         username = 'test_user'.encode('utf-8')
         s.connect(('127.0.0.1', 1234))
@@ -50,6 +46,7 @@ def test_add_client(set_up_server):
 """This tests the server receiving a message from client socket s1, then broadcasting
 it to client socket s2."""
 def test_broadcast_message(set_up_server):
+    print('print runs in test')
     s1 = set_and_send_username('test_user')
     _ = add_client(set_up_server)
 
@@ -76,27 +73,21 @@ def test_broadcast_message(set_up_server):
     assert message == 'sent_message'
 
 
-"""This tests the server rejecting a duplicate username, and then accepting a non-duplicate one"""
+"""This tests the server rejecting a duplicate username,"""
 def test_duplicate_username_rejected(set_up_server):
     db_connection = set_up_server.create_username_database()
     s1 = set_and_send_username('test_user')
     client_socket, client_address = set_up_server.server_socket.accept()
-    client_name = set_up_server.read_message(client_socket)
-    username = client_name['data'].decode('utf-8')
-    _ = chat_server.accept_user_name(db_connection, client_socket, username, set_up_server)
+    _ = chat_server.accept_username(db_connection, client_socket, set_up_server)
     set_up_server.sockets_list.append(client_socket)
-    set_up_server.add_client(client_name, client_socket, client_address)
 
     s2 = set_and_send_username('test_user')
     read_sockets, _, exception_sockets = select.select(set_up_server.sockets_list, [], set_up_server.sockets_list)
     for socket in read_sockets:
         if socket == set_up_server.server_socket:
             client_socket, client_address = set_up_server.server_socket.accept()
-            client_name = set_up_server.read_message(client_socket)
-            username = client_name['data'].decode('utf-8')
-            _ = chat_server.accept_user_name(db_connection, client_socket, username, set_up_server)
-
+            _ = chat_server.accept_username(db_connection, client_socket, set_up_server)
     message_header = s2.recv(HEADER_LENGTH)
     message_length = int(message_header.decode('utf-8').strip())
     message = s2.recv(message_length).decode('utf-8')
-    assert message == 'Username already taken - please pick another'
+    assert message == 'Username already taken - please enter another'
