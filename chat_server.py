@@ -21,6 +21,7 @@ class Server:
             dbname='postgres', user='rizwan', host='localhost', password='password123'
         )
         self.dbname = 'chatdb'
+        self.client_socket_usernames_accepted = []
 
     def remove_client(self, socket):
         try:
@@ -43,24 +44,19 @@ class Server:
         self.clients[socket] = client_name
 
     def read_message(self, socket_client):
-        print('read message')
         try:
-            print('read_message try block reached')
             message_header = socket_client.recv(self.HEADER_LENGTH)
-            print('read_message after header socket.recv')
 
             """If socket closed by client, or as soon as client used shutdown"""
             if len(message_header) == 0:
-                print('read message returns False')
                 return False
 
             message_length = int(message_header.decode('utf-8').strip())
-            print('read message returns proper obj')
-            return {'header': message_header, 'data': socket_client.recv(message_length)}
+            message = socket_client.recv(message_length)
+            return {'header': message_header, 'data': message}
 
         except Exception as e:
             """Any other exception - something happened. Exit"""
-            print('read message hits exception, returns False ', e)
             return False
 
     def broadcast_messages(self, read_socket, message):
@@ -123,7 +119,7 @@ def reject_username(reject_message, server, client_socket):
     client_socket.send(reject_message_header + reject_message)
 
 
-def accept_user_name(db_connection, client_socket, username, server):
+def store_username(db_connection, client_socket, username, server):
     if len(username) < 2 or len(username) > 32:
         reject_username('username should be between 2 and 31 characters long - try again', server, client_socket)
         return False
@@ -171,6 +167,25 @@ def accept_user_name(db_connection, client_socket, username, server):
         return False
 
 
+def accept_username(socket, server):
+    client_name = server.read_message(socket)
+
+    if client_name is False:
+        return False
+
+    username = client_name['data'].decode('utf-8')
+    accepted_username = store_username(db_connection, socket, username, server)
+
+    if not accepted_username:
+        return False
+
+    server.client_socket_usernames_accepted.append(socket)
+
+    server.add_client(client_name, socket, socket.getpeername())
+
+    return True
+
+
 if __name__ == '__main__':
     args = parser.parse_args()
     server = Server(args.IP, args.PORT)
@@ -182,26 +197,19 @@ if __name__ == '__main__':
             if socket == server.server_socket:
                 try:
                     client_socket, client_address = server.server_socket.accept()
-                    server.sockets_list.append(client_socket)
                     client_socket.setblocking(False)
-                    client_name = server.read_message(client_socket)
+                    server.sockets_list.append(client_socket) # issue is here
+                    username_accepted = accept_username(client_socket, server)
 
-                    if client_name is False:
+                    if not username_accepted:
                         continue
-
-                    username = client_name['data'].decode('utf-8')
-                    print('username is: ', username)
-                    accepted_username = accept_user_name(db_connection, client_socket, username, server)
-                    if not accepted_username:
-                        continue
-
-                    server.add_client(client_name, client_socket, client_address)
 
                 except IOError as e:
-                    """This is normal on non blocking connections - when there are no incoming data, error is going to be raised
-                    Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
-                    We are going to check for both - if one of them - that's expected, means no incoming data, continue as normal
-                    If we got different error code - something happened"""
+                    """This is normal on non blocking connections - when there are no incoming data, 
+                    error is going to be raised. Some operating systems will indicate that using AGAIN, and
+                    some using WOULDBLOCK error code We are going to check for both - if one of them - that's
+                    expected, means no incoming data, continue as normal. If we got different error code - something 
+                    happened"""
                     if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
                         server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
                     """Server  did not receive anything"""
@@ -212,47 +220,46 @@ if __name__ == '__main__':
                     server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
 
             else:
-                try:
-                    message = server.read_message(socket)
 
-                except IOError as e:
-                    """This is normal on non blocking connections - when there are no incoming data, error is going to be raised
-                    Some operating systems will indicate that using AGAIN, and some using WOULDBLOCK error code
-                    We are going to check for both - if one of them - that's expected, means no incoming data, continue as normal
-                    If we got different error code - something happened"""
-                    if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                        server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
-                    """Server  did not receive anything"""
-                    continue
+                if socket not in server.client_socket_usernames_accepted:
+                    username_accepted = accept_username(socket, server)
 
-                except Exception as e:
-                    """ Any other exception - something happened."""
-                    server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
-
-                if socket in server.clients:
-                    if message is False:
-                        server.remove_client(socket)
+                    if not username_accepted:
                         continue
-
-                    server.instantiated_logger.logger.info(
-                        f'Received message from {server.clients[socket]["data"].decode("utf-8")}:'
-                        f' {message["data"].decode("utf-8")}'
-                    )
-
-                    server.broadcast_messages(socket, message)
 
                 else:
-                    username = message['data'].decode('utf-8')
-                    accepted_username = accept_user_name(db_connection, socket, username, server)
-                    if not accepted_username:
+                    message = None
+
+                    try:
+                        message = server.read_message(socket)
+
+                    except IOError as e:
+                        """This is normal on non blocking connections - when there are no incoming data, 
+                        error is going to be raised. Some operating systems will indicate that using AGAIN, and
+                        some using WOULDBLOCK error code We are going to check for both - if one of them - that's
+                        expected, means no incoming data, continue as normal. If we got different error code - something 
+                        happened"""
+                        if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                            server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
+                        """Server did not receive anything"""
                         continue
-                    server.sockets_list.append(socket)
 
-                    server.add_client(message, socket, socket.getpeername())
+                    except Exception as e:
+                        """ Any other exception - something happened."""
+                        server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
 
-                    logging.info("Accepted new connection from {} name: {}".format(
-                        socket.getpeername, message['data'].decode('utf-8'))
-                    )
+                    if socket in server.clients:
+                        if message is False:
+                            server.remove_client(socket)
+                            continue
+
+                        server.instantiated_logger.logger.info(
+                            f'Received message from {server.clients[socket]["data"].decode("utf-8")}:'
+                            f' {message["data"].decode("utf-8")}'
+                        )
+
+                        server.broadcast_messages(socket, message)
+
 
         for notified_socket in exception_sockets:
             server.sockets_list.remove(notified_socket)
