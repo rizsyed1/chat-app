@@ -16,7 +16,7 @@ class Client:
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.instantiated_logger = logger.Logger(__name__)
         self.instantiated_logger.initialise_logging()
-        self.username_taken_message = 'Username already taken - please pick another'
+        self.username_taken_message = 'Username already taken - please enter another'
         self.username_accepted_message = 'Username assigned to you'
         self.server_disconnected_message = 'Server disconnected - please try reconnecting. sorry :('
         self.client_closed = False
@@ -76,25 +76,24 @@ class Client:
 
                 if response_message == self.username_taken_message:
                     self.msg_list.insert(tk.END, self.username_taken_message)
-                    self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Please enter your username')
-                    continue
                 elif response_message == self.username_accepted_message:
                     self.msg_list.insert(tk.END, self.username_accepted_message)
                     self.my_username = encoded_username.decode('utf-8')
                     self.send_button.configure(text='Send', command=self.send_message_thread)
                     self.entry_field.bind('<Return>', self.send_message_thread)
                     self.receive_message_thread()
-                    return
                 else:
                     self.msg_list.insert(
-                        tk.END, f'{self.chat_bot_name} > server error: {response_message} re-enter username please'
+                        tk.END, f'{self.chat_bot_name} > Error: {response_message} re-enter username please'
                     )
-                    continue
+
+                self.my_msg.set('')
+                return
+
 
             except IOError as e:
-                """This is normal on non blocking connections - when there are no incoming data, 
-                error is going to be raised. Some operating systems will indicate that using AGAIN, and
-                some using WOULDBLOCK error code We are going to check for both - if one of them - that's
+                """When there is no incoming data, error is going to be raised. Some operating systems will 
+                indicate using EGAIN, some EWOULDBLOCK.We check for both - if one of them - that's
                 expected, means no incoming data, continue as normal. If we got different error code - something 
                 happened"""
                 if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
@@ -138,9 +137,8 @@ class Client:
                     self.msg_list.insert(tk.END, f'{sender_username} > {message}')
 
                 except IOError as e:
-                    """This is normal on non blocking connections - when there are no incoming data, 
-                    error is going to be raised. Some operating systems will indicate that using AGAIN, and
-                    some using WOULDBLOCK error code We are going to check for both - if one of them - that's
+                    """When there is no incoming data, error is going to be raised. Some operating systems will 
+                    indicate using EGAIN, some EWOULDBLOCK.We check for both - if one of them - that's
                     expected, means no incoming data, continue as normal. If we got different error code - something 
                     happened"""
                     if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:

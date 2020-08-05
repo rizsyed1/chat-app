@@ -163,7 +163,7 @@ def store_username(db_connection, client_socket, username, server):
         client_socket.send(accept_username_message_header + accept_username_message)
         return username.encode('utf-8')
     else:
-        reject_username('Username already taken - please pick another', server, client_socket)
+        reject_username('Username already taken - please enter another', server, client_socket)
         return False
 
 
@@ -205,11 +205,11 @@ if __name__ == '__main__':
                         continue
 
                 except IOError as e:
-                    """This is normal on non blocking connections - when there are no incoming data, 
-                    error is going to be raised. Some operating systems will indicate that using AGAIN, and
-                    some using WOULDBLOCK error code We are going to check for both - if one of them - that's
+                    """When there is no incoming data, error is going to be raised. Some operating systems will 
+                    indicate using EGAIN, some EWOULDBLOCK.We check for both - if one of them - that's
                     expected, means no incoming data, continue as normal. If we got different error code - something 
                     happened"""
+
                     if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
                         server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
                     """Server  did not receive anything"""
@@ -234,9 +234,8 @@ if __name__ == '__main__':
                         message = server.read_message(socket)
 
                     except IOError as e:
-                        """This is normal on non blocking connections - when there are no incoming data, 
-                        error is going to be raised. Some operating systems will indicate that using AGAIN, and
-                        some using WOULDBLOCK error code We are going to check for both - if one of them - that's
+                        """When there is no incoming data, error is going to be raised. Some operating systems will 
+                        indicate using EGAIN, some EWOULDBLOCK.We check for both - if one of them - that's
                         expected, means no incoming data, continue as normal. If we got different error code - something 
                         happened"""
                         if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
