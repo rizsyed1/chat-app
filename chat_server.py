@@ -73,6 +73,7 @@ class Server:
         dbname = self.dbname
         self.root_database_connection.set_session(readonly=False, autocommit=True)
         cur = self.root_database_connection.cursor()
+        cur.execute("DROP DATABASE IF EXISTS " + self.dbname)
         cur.execute('CREATE DATABASE ' + dbname)
         cur.close()
         self.root_database_connection.close()
@@ -167,7 +168,7 @@ def store_username(db_connection, client_socket, username, server):
         return False
 
 
-def accept_username(socket, server):
+def accept_username(db_connection, socket, server):
     client_name = server.read_message(socket)
 
     if client_name is False:
@@ -198,8 +199,8 @@ if __name__ == '__main__':
                 try:
                     client_socket, client_address = server.server_socket.accept()
                     client_socket.setblocking(False)
-                    server.sockets_list.append(client_socket) # issue is here
-                    username_accepted = accept_username(client_socket, server)
+                    server.sockets_list.append(client_socket)
+                    username_accepted = accept_username(db_connection, client_socket, server)
 
                     if not username_accepted:
                         continue
@@ -222,7 +223,7 @@ if __name__ == '__main__':
             else:
 
                 if socket not in server.client_socket_usernames_accepted:
-                    username_accepted = accept_username(socket, server)
+                    username_accepted = accept_username(db_connection, socket, server)
 
                     if not username_accepted:
                         continue
