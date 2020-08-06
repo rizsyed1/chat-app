@@ -107,7 +107,7 @@ parser.add_argument(
 parser.add_argument(
     'PORT',
     nargs='?',
-    default=80,
+    default=1234,
     metavar='Port',
     type=str,
     help='the port of the client socket'
