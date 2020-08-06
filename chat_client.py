@@ -163,7 +163,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     'IP',
     nargs='?',
-    default='',
+    default='206.189.119.156',
     metavar='IP-address',
     type=str,
     help='the IP address of client socket')
