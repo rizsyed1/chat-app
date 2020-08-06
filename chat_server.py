@@ -1,12 +1,10 @@
 import server_socket
 import argparse
-import logging
 import logger
 import psycopg2
 import psycopg2.errors
 import select
 import errno
-import sys
 
 
 class Server:
@@ -23,7 +21,7 @@ class Server:
         self.dbname = 'chatdb'
         self.client_socket_usernames_accepted = []
 
-    def remove_client(self, socket):
+    def remove_client(self, db_connection, socket):
         try:
             self.instantiated_logger.logger.info(
                 'Closed connection from: {}'.format(self.clients[socket]['data'].decode('utf-8'))
@@ -32,6 +30,8 @@ class Server:
             self.sockets_list.remove(socket)
 
             del self.clients[socket]
+
+            db_connection
 
         except Exception as e:
             self.instantiated_logger.logger.exception(e)
@@ -250,7 +250,7 @@ if __name__ == '__main__':
 
                     if socket in server.clients:
                         if message is False:
-                            server.remove_client(socket)
+                            server.remove_client(db_connection, socket)
                             continue
 
                         server.instantiated_logger.logger.info(
