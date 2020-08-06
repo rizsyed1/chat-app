@@ -98,7 +98,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     'IP',
     nargs='?',
-    default='127.0.0.1',
+    default='',
     metavar='IP-address',
     type=str,
     help='the IP address of client socket'
