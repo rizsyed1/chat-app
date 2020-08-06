@@ -36,12 +36,14 @@ class Server:
             cur = db_connection.cursor()
 
             cur.execute(
-                sql.SQL("""
-                DELETE FROM 
-                    usernames
-                WHERE
-                    username = {}
-            """).format(sql.Identifier(username)))
+                """
+                    DELETE FROM
+                        usernames
+                    WHERE
+                        username=%(username)s
+                """, {
+                        'username': username
+                    })
 
         except Exception as e:
             self.instantiated_logger.logger.exception(e)
@@ -83,7 +85,7 @@ class Server:
         dbname = self.dbname
         self.root_database_connection.set_session(readonly=False, autocommit=True)
         cur = self.root_database_connection.cursor()
-        cur.execute("DROP DATABASE IF EXISTS " + self.dbname)
+        cur.execute("DROP DATABASE IF EXISTS " + dbname)
         cur.execute('CREATE DATABASE ' + dbname)
         cur.close()
         self.root_database_connection.close()
