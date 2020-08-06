@@ -5,10 +5,12 @@ import logger
 import psycopg2
 import psycopg2.errors
 import select
+import errno
+import sys
 
 
 class Server:
-    def __init__(self, IP='206.189.119.156', PORT=1234):
+    def __init__(self, IP, PORT):
         self.server_socket = server_socket.Socket(IP, PORT)
         self.clients = {}
         self.sockets_list = [self.server_socket]
@@ -19,6 +21,7 @@ class Server:
             dbname='postgres', user='rizwan', host='localhost', password='password123'
         )
         self.dbname = 'chatdb'
+        self.client_socket_usernames_accepted = []
 
     def remove_client(self, socket):
         try:
@@ -49,7 +52,8 @@ class Server:
                 return False
 
             message_length = int(message_header.decode('utf-8').strip())
-            return {'header': message_header, 'data': socket_client.recv(message_length)}
+            message = socket_client.recv(message_length)
+            return {'header': message_header, 'data': message}
 
         except Exception as e:
             """Any other exception - something happened. Exit"""
@@ -69,6 +73,7 @@ class Server:
         dbname = self.dbname
         self.root_database_connection.set_session(readonly=False, autocommit=True)
         cur = self.root_database_connection.cursor()
+        cur.execute("DROP DATABASE IF EXISTS " + self.dbname)
         cur.execute('CREATE DATABASE ' + dbname)
         cur.close()
         self.root_database_connection.close()
@@ -115,7 +120,7 @@ def reject_username(reject_message, server, client_socket):
     client_socket.send(reject_message_header + reject_message)
 
 
-def accept_user_name(db_connection, client_socket, username, server):
+def store_username(db_connection, client_socket, username, server):
     if len(username) < 2 or len(username) > 32:
         reject_username('username should be between 2 and 31 characters long - try again', server, client_socket)
         return False
@@ -124,8 +129,8 @@ def accept_user_name(db_connection, client_socket, username, server):
     for char in username:
         if char in banned_chars:
             reject_username(
-                'username contains invalid characters - try again ("@", "#", ":" and all quotation marks not accepted)'
-            , server, client_socket)
+                'username contains invalid characters - try again ("@", "#", ":" and all quotation marks not accepted)',
+                server, client_socket)
             return False
 
     cur = db_connection.cursor()
@@ -159,8 +164,27 @@ def accept_user_name(db_connection, client_socket, username, server):
         client_socket.send(accept_username_message_header + accept_username_message)
         return username.encode('utf-8')
     else:
-        reject_username('Username already taken - please pick another', server, client_socket)
+        reject_username('Username already taken - please enter another', server, client_socket)
         return False
+
+
+def accept_username(db_connection, socket, server):
+    client_name = server.read_message(socket)
+
+    if client_name is False:
+        return False
+
+    username = client_name['data'].decode('utf-8')
+    accepted_username = store_username(db_connection, socket, username, server)
+
+    if not accepted_username:
+        return False
+
+    server.client_socket_usernames_accepted.append(socket)
+
+    server.add_client(client_name, socket, socket.getpeername())
+
+    return True
 
 
 if __name__ == '__main__':
@@ -172,47 +196,70 @@ if __name__ == '__main__':
         read_sockets, _, exception_sockets = select.select(server.sockets_list, [], server.sockets_list)
         for socket in read_sockets:
             if socket == server.server_socket:
-                client_socket, client_address = server.server_socket.accept()
-                client_name = server.read_message(client_socket)
+                try:
+                    client_socket, client_address = server.server_socket.accept()
+                    client_socket.setblocking(False)
+                    server.sockets_list.append(client_socket)
+                    username_accepted = accept_username(db_connection, client_socket, server)
 
-                if client_name is False:
+                    if not username_accepted:
+                        continue
+
+                except IOError as e:
+                    """When there is no incoming data, error is going to be raised. Some operating systems will 
+                    indicate using EGAIN, some EWOULDBLOCK.We check for both - if one of them - that's
+                    expected, means no incoming data, continue as normal. If we got different error code - something 
+                    happened"""
+
+                    if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                        server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
+                    """Server  did not receive anything"""
                     continue
 
-                username = client_name['data'].decode('utf-8')
-                accepted_username = accept_user_name(db_connection, client_socket, username, server)
-                server.sockets_list.append(client_socket)
-                if not accepted_username:
-                    continue
-
-                server.add_client(client_name, client_socket, client_address)
+                except Exception as e:
+                    """ Any other exception - something happened."""
+                    server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
 
             else:
-                message = server.read_message(socket)
 
-                if socket in server.clients:
-                    if message is False:
-                        server.remove_client(socket)
+                if socket not in server.client_socket_usernames_accepted:
+                    username_accepted = accept_username(db_connection, socket, server)
+
+                    if not username_accepted:
                         continue
-
-                    server.instantiated_logger.logger.info(
-                        f'Received message from {server.clients[socket]["data"].decode("utf-8")}:'
-                        f' {message["data"].decode("utf-8")}'
-                    )
-
-                    server.broadcast_messages(socket, message)
 
                 else:
-                    username = message['data'].decode('utf-8')
-                    accepted_username = accept_user_name(db_connection, socket, username, server)
-                    if not accepted_username:
+                    message = None
+
+                    try:
+                        message = server.read_message(socket)
+
+                    except IOError as e:
+                        """When there is no incoming data, error is going to be raised. Some operating systems will 
+                        indicate using EGAIN, some EWOULDBLOCK.We check for both - if one of them - that's
+                        expected, means no incoming data, continue as normal. If we got different error code - something 
+                        happened"""
+                        if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                            server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
+                        """Server did not receive anything"""
                         continue
-                    server.sockets_list.append(socket)
 
-                    server.add_client(message, socket, socket.getpeername())
+                    except Exception as e:
+                        """ Any other exception - something happened."""
+                        server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
 
-                    logging.info("Accepted new connection from {} name: {}".format(
-                        socket.getpeername, message['data'].decode('utf-8'))
-                    )
+                    if socket in server.clients:
+                        if message is False:
+                            server.remove_client(socket)
+                            continue
+
+                        server.instantiated_logger.logger.info(
+                            f'Received message from {server.clients[socket]["data"].decode("utf-8")}:'
+                            f' {message["data"].decode("utf-8")}'
+                        )
+
+                        server.broadcast_messages(socket, message)
+
 
         for notified_socket in exception_sockets:
             server.sockets_list.remove(notified_socket)
