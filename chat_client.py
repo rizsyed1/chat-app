@@ -50,7 +50,7 @@ class Client:
         receive_thread.start()
 
     def send_message_thread(self, event=None):
-        send_thread = threading.Thread(target=client.send_message())
+        send_thread = threading.Thread(target=client.send_message)
         send_thread.daemon = True
         send_thread.start()
 
@@ -90,7 +90,6 @@ class Client:
                 self.my_msg.set('')
                 return
 
-
             except IOError as e:
                 """When there is no incoming data, error is going to be raised. Some operating systems will 
                 indicate using EGAIN, some EWOULDBLOCK.We check for both - if one of them - that's
@@ -107,7 +106,6 @@ class Client:
                 """ Any other exception - something happened. Exit"""
                 self.msg_list.insert(tk.END, f'{self.chat_bot_name} > Reading error: {str(e)}')
                 sys.exit()
-
 
     def send_message(self):
         message = self.my_msg.get()
@@ -149,7 +147,7 @@ class Client:
 
                 except Exception as e:
                     """Something happened. Exit"""
-                    self.msg_list.insert( tk.END, f'{self.chat_bot_name} > {self.server_disconnected_message}')
+                    self.msg_list.insert(tk.END, f'{self.chat_bot_name} > {self.server_disconnected_message}')
                     self.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
                     sys.exit()
 
@@ -165,7 +163,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     'IP',
     nargs='?',
-    default='127.0.0.1',
+    default='',
     metavar='IP-address',
     type=str,
     help='the IP address of client socket')
