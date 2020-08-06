@@ -3,6 +3,7 @@ import argparse
 import logger
 import psycopg2
 import psycopg2.errors
+from psycopg2 import sql
 import select
 import errno
 
@@ -22,16 +23,25 @@ class Server:
         self.client_socket_usernames_accepted = []
 
     def remove_client(self, db_connection, socket):
+        username = self.clients[socket]['data'].decode('utf-8')
         try:
             self.instantiated_logger.logger.info(
-                'Closed connection from: {}'.format(self.clients[socket]['data'].decode('utf-8'))
+                'Closed connection from: {}'.format(username)
             )
 
             self.sockets_list.remove(socket)
 
             del self.clients[socket]
 
-            db_connection
+            cur = db_connection.cursor()
+
+            cur.execute(
+                sql.SQL("""
+                DELETE FROM 
+                    usernames
+                WHERE
+                    username = {}
+            """).format(sql.Identifier(username)))
 
         except Exception as e:
             self.instantiated_logger.logger.exception(e)
