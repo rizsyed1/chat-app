@@ -1,12 +1,11 @@
 import server_socket
 import argparse
-import logging
 import logger
 import psycopg2
 import psycopg2.errors
+from psycopg2 import sql
 import select
 import errno
-import sys
 
 
 class Server:
@@ -23,15 +22,28 @@ class Server:
         self.dbname = 'chatdb'
         self.client_socket_usernames_accepted = []
 
-    def remove_client(self, socket):
+    def remove_client(self, db_connection, socket):
+        username = self.clients[socket]['data'].decode('utf-8')
         try:
             self.instantiated_logger.logger.info(
-                'Closed connection from: {}'.format(self.clients[socket]['data'].decode('utf-8'))
+                'Closed connection from: {}'.format(username)
             )
 
             self.sockets_list.remove(socket)
 
             del self.clients[socket]
+
+            cur = db_connection.cursor()
+
+            cur.execute(
+                """
+                    DELETE FROM
+                        usernames
+                    WHERE
+                        username=%(username)s
+                """, {
+                        'username': username
+                    })
 
         except Exception as e:
             self.instantiated_logger.logger.exception(e)
@@ -73,7 +85,7 @@ class Server:
         dbname = self.dbname
         self.root_database_connection.set_session(readonly=False, autocommit=True)
         cur = self.root_database_connection.cursor()
-        cur.execute("DROP DATABASE IF EXISTS " + self.dbname)
+        cur.execute("DROP DATABASE IF EXISTS " + dbname)
         cur.execute('CREATE DATABASE ' + dbname)
         cur.close()
         self.root_database_connection.close()
@@ -250,7 +262,7 @@ if __name__ == '__main__':
 
                     if socket in server.clients:
                         if message is False:
-                            server.remove_client(socket)
+                            server.remove_client(db_connection, socket)
                             continue
 
                         server.instantiated_logger.logger.info(
