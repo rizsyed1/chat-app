@@ -49,9 +49,8 @@ class Server:
             self.instantiated_logger.logger.exception(e)
 
     def add_client(self, client_name, socket, client_address):
-        self.instantiated_logger.logger.info("Added client {}:{}, name: {}".format(
-            *client_address, client_name['data'].decode('utf-8'))
-        )
+        username = client_name["data"].decode("utf-8")
+        self.instantiated_logger.logger.info(f'Added client {client_address[0]}:{client_address[1]}, name: {username}')
 
         self.clients[socket] = client_name
 
