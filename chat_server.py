@@ -26,7 +26,7 @@ class Server:
         username = self.clients[socket]['data'].decode('utf-8')
         try:
             self.instantiated_logger.logger.info(
-                'Closed connection from: {}'.format(username)
+                f'Closed connection from: {username}'
             )
 
             self.sockets_list.remove(socket)
@@ -223,13 +223,13 @@ if __name__ == '__main__':
                     happened"""
 
                     if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                        server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
+                        server.instantiated_logger.logger.info(f'Reading error: {str(e)}')
                     """Server  did not receive anything"""
                     continue
 
                 except Exception as e:
                     """ Any other exception - something happened."""
-                    server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
+                    server.instantiated_logger.logger.info(f'Reading error: {str(e)}')
 
             else:
 
@@ -251,13 +251,13 @@ if __name__ == '__main__':
                         expected, means no incoming data, continue as normal. If we got different error code - something 
                         happened"""
                         if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                            server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
+                            server.instantiated_logger.logger.info(f'Reading error: {str(e)}')
                         """Server did not receive anything"""
                         continue
 
                     except Exception as e:
                         """ Any other exception - something happened."""
-                        server.instantiated_logger.logger.info('Reading error: {}'.format(str(e)))
+                        server.instantiated_logger.logger.info(f'Reading error: {str(e)}')
 
                     if socket in server.clients:
                         if message is False:
