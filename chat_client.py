@@ -109,7 +109,6 @@ class Client:
 
     def send_message(self):
         message = self.my_msg.get()
-        message = message + '\n'
         self.msg_list.insert(tk.END, f'{self.my_username} > {message} \n')
         self.my_msg.set('')
         if message:
